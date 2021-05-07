@@ -1,0 +1,184 @@
+@echo off
+set skript=1.2.1
+title Windows Desktop-Server-Embedded für Legacy NT Systeme - Automatische Update Installation %skript% - IngenServerHost @2020
+color 0f
+
+goto FILECHECK
+
+:EXIT
+echo Das Programm wird beendet...
+ping -n 15 localhost > NUL
+exit
+
+:FILECHECK
+SETLOCAL ENABLEEXTENSIONS ENABLEDELAYEDEXPANSION
+
+@echo off
+if exist %Systemroot%\system32\ping.exe (
+        set FILE1=0
+    ) ELSE (
+        set FILE1=1
+    )
+if exist %Systemroot%\system32\find.exe (
+        set FILE2=0
+    ) ELSE (
+        set FILE2=1
+    )
+
+if exist %Systemroot%\system32\shutdown.exe (
+        set FILE4=0
+    ) ELSE (
+        set FILE4=1
+    )
+if exist %Systemroot%\system32\tasklist.exe (
+        set FILE5=0
+    ) ELSE (
+        set FILE5=1
+    )
+	
+if exist runcheck.exe (
+        set FILE6=0
+    ) ELSE (
+        set FILE6=1
+    )	
+	
+if %FILE1%==1 goto NOFILE
+if %FILE2%==1 goto NOFILE
+
+if %FILE4%==1 goto NOFILE
+if %FILE5%==1 goto NOFILE
+if %FILE6%==1 goto NOFILE
+goto START
+
+:NOFILE
+SETLOCAL ENABLEEXTENSIONS ENABLEDELAYEDEXPANSION
+color 0c
+cls
+echo Windows Desktop-Server-Embedded für Legacy NT Systeme - Automatische Update Installation %skript% - IngenServerHost @2020
+echo.
+echo ###########################################################
+echo.
+echo Deinem System fehlen wichtige Dateien, zum ausfuehren dieses Programms.
+echo Fehlende Dateien:
+
+if %FILE1%==1 echo ping.exe (im System32 Ordner)
+if %FILE2%==1 echo find.exe (im System32 Ordner)
+if %FILE3%==1 echo findstr.exe (im System32 Ordner)
+if %FILE4%==1 echo shutdown.exe (im System32 Ordner)
+if %FILE5%==1 echo tasklist.exe (im System32 Ordner)
+if %FILE6%==1 echo runcheck.exe (Diese Datei muss im selben Ordner liegen wie das Update Programm)
+
+echo.
+echo Bestaetige mit einer Beliebigen Taste die Beendung des Programms.
+pause >NUL
+goto EXIT
+
+
+:START
+@echo off
+VER |find /i "Windows 95" >NUL 
+IF %errorlevel% EQU 0 GOTO BEENDEN
+VER |find /i "Windows 98" >NUL 
+IF %errorlevel% EQU 0 GOTO BEENDEN
+VER |find /i "Windows Millennium" >NUL 
+IF %errorlevel% EQU 0 GOTO BEENDEN
+
+VER | find "Microsoft Windows [Version 5" > nul 
+IF %errorlevel% EQU 0 set ver=5.0
+VER | find "XP" > nul 
+IF %errorlevel% EQU 0 set ver=5.1
+VER | find "2000" > nul 
+IF %errorlevel% EQU 0 set ver 5.0
+VER | find "NT" > nul 
+IF %errorlevel% EQU 0 set ver=nt
+
+VER | find "Microsoft Windows [Version 6.0" > nul 
+IF %errorlevel% EQU 0 GOTO BEENDEN
+VER | find "Microsoft Windows [Version 6.1" > nul 
+IF %errorlevel% EQU 0 GOTO BEENDEN
+VER | find "Microsoft Windows [Version 6.2" > nul 
+IF %errorlevel% EQU 0 GOTO BEENDEN
+VER | find "Microsoft Windows [Version 6.3" > nul 
+IF %errorlevel% EQU 0 GOTO BEENDEN
+VER | find "Microsoft Windows [Version 10.0" > nul 
+IF %errorlevel% EQU 0 GOTO BEENDEN
+
+if %PROCESSOR_ARCHITECTURE%==AMD64 set arch=amd64
+if %PROCESSOR_ARCHITECTURE%==x86 set arch=i386
+if %PROCESSOR_ARCHITECTURE%==AMD64 set anderer=x86
+if %PROCESSOR_ARCHITECTURE%==x86 set anderer=x64
+if %PROCESSOR_ARCHITECTURE%==AMD64 set bit=32bit
+if %PROCESSOR_ARCHITECTURE%==x86 set bit=64bit
+if %PROCESSOR_ARCHITECTURE%==AMD64 set richtige=64bit
+if %PROCESSOR_ARCHITECTURE%==x86 set richtige=32bit
+if %ver%==nt set system Windows NT basiertes System 
+if %ver%==5.0 set system=Windows NT 5.0 basiertes System
+if %ver%==5.1 set system=Windows NT 5.1 basiertes System
+if %ver%==5.2 set system=Windows NT 5.2 basiertes System
+if %ver%==windows8-rt set system=Windows 8 RTM
+if %ver%==windows8.1 set system=Windows 8.1
+if %ver%==windows10.0 set system=Windows 10
+if %ver%==6.0 (goto BEENDEN)
+if %ver%==6.1 (goto BEENDEN)
+if %ver%==windows8-rt (goto BEENDEN)
+if %ver%==windows8.1 (goto BEENDEN)
+if %ver%==windows10 (goto BEENDEN)
+goto OS
+:BEENDEN
+echo.
+echo Dein verwendetes Betriebssystem %system% unterstuetzt die folgenden Update Pakete für Legacy NT Systeme nicht!
+goto EXIT
+
+
+:OS
+echo Automatische Update Installation für Legacy NT Systeme - IngenServerHost @2020
+echo.
+echo ###########################################################
+echo.
+title %system% - Automatische Update Installation %skript% - IngenServerHost @2020
+echo Dein  Betriebssystem verwendet die %PROCESSOR_ARCHITECTURE% (%arch%) Architektur
+echo.
+
+:RESTARTCHECK
+echo.
+echo ###########################################################
+echo.
+echo Soll ein Neustart nach Abschluss der Updateinstallationen automatisch erfolgen? Nein(0), Ja(1)
+set INPUT=
+set /P INPUT=Eingabe: %=%
+If /I "%INPUT%"=="0" echo  Das System wird nicht automatisch neugestartet!
+If /I "%INPUT%"=="1" echo  Das System wird automatisch neugestartet!
+
+:UPDATE
+@echo off
+echo.
+echo Beginne mit dem Update Vorgang...
+
+:RUNCHECK
+tasklist | find /i "kb" >NUL
+if %errorlevel%==1 goto INSTALLATION
+if %errorlevel%==0 goto RUNCHECK
+:INSTALLATION
+@echo off
+for /f %%A in ('dir /b /od /tw *.exe') do (
+			runcheck.exe
+			ECHO= Installing %%~nA
+			echo Warte auf Fertigstellung des letzten Updates..
+			echo.
+			start "" "%%A" /passive /norestart 		
+)		
+echo.
+echo.
+echo ###########################################################
+echo.
+echo == Updates installiert ==
+echo.
+If not %INPUT%==1 goto MANUELL
+If %INPUT%==1 echo ==Das System wird automatisch neugestartet! ==
+ping localhost -n 10 >NUL
+shutdown /r /t 0
+exit
+:MANUELL
+echo == Druecke eine Taste um das System neuzustarten! ==&pause>nul
+echo.
+shutdown.exe /r /t 0
